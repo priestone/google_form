@@ -1,6 +1,13 @@
 import styled from "styled-components";
 import Header from "../components/Header";
-import { TextField, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import {
+  FormControlLabel,
+  Radio,
+  RadioGroup,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+} from "@mui/material";
 import FormatBoldIcon from "@mui/icons-material/FormatBold";
 import FormatItalicIcon from "@mui/icons-material/FormatItalic";
 import FormatUnderlinedIcon from "@mui/icons-material/FormatUnderlined";
@@ -9,7 +16,10 @@ import React from "react";
 // --------------------------------------------------
 // styled-components
 // --------------------------------------------------
-const Container = styled.div``;
+const Container = styled.div`
+  background-color: #f8f8fe;
+  min-height: 100vh;
+`;
 
 const Wrap = styled.div`
   width: 770px;
@@ -18,14 +28,26 @@ const Wrap = styled.div`
 
 const TitleWrap = styled.div`
   width: 100%;
+  background-color: #fff;
   padding-top: 22px;
   padding-bottom: 24px;
-  border: 1px solid rgba(0, 0, 0, 0.2);
+  padding-left: 20px;
   border-radius: 8px;
-  border-top: 10px solid rgb(114, 72, 185);
+  border: 1px solid rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
-  padding-left: 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  position: relative;
+`;
+
+const PurpleBar = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 8px; /* 높이만큼 보라색 bar */
+  background-color: #7248b9;
+  border-radius: 8px 8px 0 0;
 `;
 
 // (1) 제목과 토글 버튼을 묶을 컨테이너
@@ -40,7 +62,22 @@ const DescFieldContainer = styled.div`
   margin-bottom: 20px;
 `;
 
-const QuestionWrap = styled.div``;
+const QuestionWrap = styled.div`
+  margin-top: 10px;
+`;
+
+const Question = styled.div`
+  width: 100%;
+  min-height: 80px; /* 내용에 따라 유동적으로 늘어나도록. 고정 높이는 최소화 */
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  padding: 16px;
+  margin-bottom: 10px; /* 질문 카드 간격 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+`;
 
 // --------------------------------------------------
 // 컴포넌트
@@ -101,12 +138,7 @@ const Edit = () => {
       <Header />
       <Wrap>
         <TitleWrap>
-          {/*
-            -----------------------------------------
-             (A) 제목 Field + 토글
-             - 같은 div 안에 묶고, ref 달기
-            -----------------------------------------
-          */}
+          <PurpleBar />
           <TitleFieldContainer ref={titleRef}>
             <TextField
               variant="standard"
@@ -119,6 +151,8 @@ const Edit = () => {
                 width: "90%",
                 "& .MuiInput-underline:after": {
                   borderBottomColor: "rgb(114, 72, 185)",
+                  fontSize: "30px",
+                  fontWeight: "600",
                 },
               }}
             />
@@ -185,7 +219,27 @@ const Edit = () => {
             )}
           </DescFieldContainer>
         </TitleWrap>
-        <QuestionWrap></QuestionWrap>
+        <QuestionWrap>
+          <Question>
+            <TextField
+              variant="standard"
+              placeholder="제목 없는 질문"
+              sx={{ marginBottom: "8px" }}
+            />
+            <RadioGroup>
+              <FormControlLabel
+                value="option1"
+                control={<Radio />}
+                label="옵션1"
+              />
+              <FormControlLabel
+                value="option2"
+                control={<Radio />}
+                label="옵션2"
+              />
+            </RadioGroup>
+          </Question>
+        </QuestionWrap>
       </Wrap>
     </Container>
   );
