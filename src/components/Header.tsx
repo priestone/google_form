@@ -1,7 +1,8 @@
 import styled from "styled-components";
 import DescriptionIcon from "@mui/icons-material/Description";
 import StarBorderOutlinedIcon from "@mui/icons-material/StarBorderOutlined";
-import { Avatar, Button, IconButton } from "@mui/material";
+import { Avatar, Button, IconButton, Tab, Tabs } from "@mui/material";
+import React from "react";
 const Container = styled.div`
   width: 100%;
   height: 100px;
@@ -59,6 +60,12 @@ const Edit = styled.div`
 const Question = styled.div``;
 const Response = styled.div``;
 const Header = () => {
+  const [value, setValue] = React.useState("one");
+
+  const handleChange = (event: React.SyntheticEvent, newValue: string) => {
+    setValue(newValue);
+  };
+
   return (
     <Container>
       <UpContainer>
@@ -79,10 +86,17 @@ const Header = () => {
         </Option>
       </UpContainer>
       <DownContainer>
-        <Edit>
-          <Question>질문</Question>
-          <Response>응답</Response>
-        </Edit>
+        <Tabs
+          value={value}
+          onChange={handleChange}
+          textColor="secondary"
+          indicatorColor="secondary"
+          aria-label="secondary tabs example"
+        >
+          <Tab value="one" label="질문" disableRipple />
+          <Tab value="two" label="응답" disableRipple />
+          <Tab value="three" label="설정" disableRipple />
+        </Tabs>
       </DownContainer>
     </Container>
   );
