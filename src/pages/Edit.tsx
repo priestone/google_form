@@ -14,11 +14,15 @@ import {
   MenuItem,
   Checkbox,
   SelectChangeEvent,
+  Switch,
+  Tooltip,
 } from "@mui/material";
 import ClearIcon from "@mui/icons-material/Clear";
 import FormatBoldIcon from "@mui/icons-material/FormatBold";
 import FormatItalicIcon from "@mui/icons-material/FormatItalic";
 import FormatUnderlinedIcon from "@mui/icons-material/FormatUnderlined";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 /* ----------------------------------
    styled-components 
@@ -32,9 +36,9 @@ const Container = styled.div`
 const Wrap = styled.div`
   width: 770px;
   margin: 20px auto;
+  position: relative;
 `;
 
-/* "isActive" prop으로 선택 시 왼쪽 보더에 파란색 강조 */
 const TitleWrap = styled.div<{ isActive: boolean }>`
   width: 100%;
   background-color: #fff;
@@ -45,8 +49,6 @@ const TitleWrap = styled.div<{ isActive: boolean }>`
   border: 1px solid rgba(0, 0, 0, 0.2);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   position: relative;
-
-  /* 왼쪽 파란 테두리 (선택된 경우만) */
   border-left: ${(props) => (props.isActive ? "4px solid #4285f4" : "none")};
 `;
 
@@ -70,15 +72,15 @@ const DescFieldContainer = styled.div`
   margin-bottom: 20px;
 `;
 
-/* QuestionWrap 자체도 클릭했을 때 isActive로 파란 선 표시 */
 const QuestionWrap = styled.div<{ isActive: boolean }>`
   margin-top: 10px;
   border-left: ${(props) => (props.isActive ? "4px solid #4285f4" : "none")};
 `;
 
+/* 질문 박스는 flex column 구조, 하단에 컨트롤 패널을 포함 */
 const Question = styled.div`
   width: 100%;
-  min-height: 80px;
+  min-height: 120px;
   border-radius: 8px;
   background-color: #fff;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -86,21 +88,31 @@ const Question = styled.div`
   margin-bottom: 10px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
 `;
 
-/* 리모컨 - activeWrap에 따라 위치 이동 */
+/* 하단 컨트롤 패널: 투명도가 섞인 검정 선으로 분리 */
+const QuestionControlPanel = styled.div`
+  border-top: 1px solid rgba(0, 0, 0, 0.2);
+  margin-top: 16px;
+  padding-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+`;
+
+/* 리모컨: Wrap 컨테이너 기준 absolute 위치, 질문 폼 옆 (20px 간격) */
 const RemoteControl = styled.div<{ top: number }>`
-  position: fixed;
-  right: 10%;
+  position: absolute;
+  left: calc(100% + 20px);
   width: 60px;
   height: 60px;
   background-color: #ddd;
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  transition: top 0.3s ease; /* 부드러운 이동 */
+  transition: top 0.3s ease;
   top: ${(props) => props.top}px;
-
   display: flex;
   align-items: center;
   justify-content: center;
@@ -108,29 +120,22 @@ const RemoteControl = styled.div<{ top: number }>`
 `;
 
 const Edit = () => {
-  /* ----------------------------------
-     1) 전역 상태: 어느 영역이 클릭되었나?
-       - "title"이면 TitleWrap, "question"이면 QuestionWrap, null이면 아직 선택되지 않음
-  ---------------------------------- */
+  // 1) 활성화 영역 상태
   const [activeWrap, setActiveWrap] = React.useState<
     "title" | "question" | null
   >(null);
-
-  /* 리모컨의 top 위치를 계산 (예시: title=100px, question=300px, default=-100px 숨김) */
   const remoteTop = React.useMemo(() => {
     switch (activeWrap) {
       case "title":
-        return 100;
+        return 0;
       case "question":
-        return 300;
+        return 200;
       default:
-        return -80; // 화면 밖 (숨김)
+        return 0;
     }
   }, [activeWrap]);
 
-  /* ----------------------------------
-     2) 질문 유형 + 옵션 (객관식/체크박스/단답/장문)
-  ---------------------------------- */
+  // 2) 질문 유형 및 옵션 관리
   const [questionType, setQuestionType] = React.useState("radio");
   const [options, setOptions] = React.useState<string[]>([""]);
 
@@ -152,13 +157,9 @@ const Edit = () => {
     setQuestionType(event.target.value);
   };
 
-  /* ----------------------------------
-     3) 질문 제목에 대한 Bold/Italic/Underline
-        -> TextField에 style로 적용
-  ---------------------------------- */
+  // 3) 질문 제목의 Bold/Italic/Underline 처리
   const [qtitleFormats, setQtitleFormats] = React.useState<string[]>([]);
-  const [qtitleValue, setQtitleValue] = React.useState(""); // 질문 문구
-
+  const [qtitleValue, setQtitleValue] = React.useState("");
   const handleQtitleFormat = (
     event: React.MouseEvent<HTMLElement>,
     newFormats: string[]
@@ -166,7 +167,6 @@ const Edit = () => {
     setQtitleFormats(newFormats);
   };
 
-  /* TextField style 동적 적용 */
   const questionTextStyle: React.CSSProperties = {
     fontWeight: qtitleFormats.includes("bold") ? "bold" : "normal",
     fontStyle: qtitleFormats.includes("italic") ? "italic" : "normal",
@@ -174,11 +174,7 @@ const Edit = () => {
     fontSize: 16,
   };
 
-  /* ----------------------------------
-     4) 설문 전체 Title/Desc
-        Bold/Italic/Underline 적용하려면 
-        같은 로직을 쓰면 됨. (여기서는 예시로만 둠)
-  ---------------------------------- */
+  // 4) 설문 전체 Title/Desc 관련 상태
   const [titleFormats, setTitleFormats] = React.useState<string[]>([]);
   const [descFormats, setDescFormats] = React.useState<string[]>([]);
 
@@ -203,9 +199,6 @@ const Edit = () => {
     setDescFormats(newFormats);
   };
 
-  /* ----------------------------------
-     5) 영역 밖 클릭 -> 포커스 해제
-  ---------------------------------- */
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as HTMLElement;
@@ -220,15 +213,10 @@ const Edit = () => {
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  /* ----------------------------------
-     6) 질문 유형별 옵션 렌더링
-        - 단답형/장문형일 땐 '옵션 추가' 버튼 제거
-  ---------------------------------- */
+  // 5) 질문 유형별 옵션 렌더링 (옵션 추가 버튼은 컨트롤 패널에서 처리)
   const renderQuestionOptions = () => {
     switch (questionType) {
       case "radio":
@@ -238,7 +226,7 @@ const Edit = () => {
               <FormControlLabel
                 key={index}
                 value={String(index)}
-                control={<Radio disabled />} // 미리보기로 클릭 비활성
+                control={<Radio disabled />}
                 style={{ marginBottom: "8px" }}
                 label={
                   <>
@@ -262,15 +250,6 @@ const Edit = () => {
                 }
               />
             ))}
-
-            {/* 객관식일 때만 옵션 추가 버튼 */}
-            <Button
-              onClick={handleAddOption}
-              variant="text"
-              style={{ marginLeft: 32 }}
-            >
-              옵션 추가
-            </Button>
           </RadioGroup>
         );
       case "checkbox":
@@ -302,15 +281,6 @@ const Edit = () => {
                 </IconButton>
               </div>
             ))}
-
-            {/* 체크박스일 때만 옵션 추가 */}
-            <Button
-              onClick={handleAddOption}
-              variant="text"
-              style={{ marginLeft: 32 }}
-            >
-              옵션 추가
-            </Button>
           </>
         );
       case "short":
@@ -338,25 +308,34 @@ const Edit = () => {
     }
   };
 
-  /* ----------------------------------
-     7) 렌더링
-  ---------------------------------- */
+  // 6) 질문 복사 및 삭제 기능 (여러 질문 관리 시 배열 조작으로 확장 가능)
+  const handleCopyQuestion = () => {
+    console.log("Question copied!");
+  };
+
+  const handleDeleteQuestion = () => {
+    console.log("Question deleted!");
+    setQtitleValue("");
+    setOptions([""]);
+    setQuestionType("radio");
+  };
+
+  // 7) 필수 여부 상태 (MUI Switch 사용)
+  const [isRequired, setIsRequired] = React.useState(false);
+
   return (
     <Container>
       <Header />
-
-      {/* 리모컨 - 클릭된 영역에 따라 위치 이동 */}
-      <RemoteControl top={remoteTop}>새 질문 작성</RemoteControl>
-
       <Wrap>
-        {/* -------- (A) TITLE WRAP -------- */}
+        {/* 리모컨: Wrap 컨테이너 기준 절대 위치 (폼 옆 20px 간격) */}
+        <RemoteControl top={remoteTop}>새 질문 작성</RemoteControl>
+
+        {/* (A) TITLE WRAP */}
         <TitleWrap
           onClick={() => setActiveWrap("title")}
           isActive={activeWrap === "title"}
         >
           <PurpleBar />
-
-          {/* 설문지 '제목' */}
           <TitleFieldContainer ref={titleRef}>
             <TextField
               variant="standard"
@@ -394,8 +373,6 @@ const Edit = () => {
               </ToggleButtonGroup>
             )}
           </TitleFieldContainer>
-
-          {/* 설문지 '설명' */}
           <DescFieldContainer ref={descRef}>
             <TextField
               variant="standard"
@@ -434,14 +411,22 @@ const Edit = () => {
           </DescFieldContainer>
         </TitleWrap>
 
-        {/* -------- (B) QUESTION WRAP -------- */}
+        {/* (B) QUESTION WRAP */}
         <QuestionWrap
           onClick={() => setActiveWrap("question")}
           isActive={activeWrap === "question"}
         >
           <Question>
-            {/* (1) 질문 제목 (문자 조절 토글 + Bold/Italic/Underline) */}
-            <div style={{ display: "flex", marginBottom: "16px", gap: "16px" }}>
+            {/* 질문 제목 및 드롭다운: flex 컨테이너에 alignItems를 flex-start로 지정 */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                marginBottom: "16px",
+                gap: "16px",
+                position: "relative",
+              }}
+            >
               <div
                 ref={qtitleRef}
                 style={{ flex: 1 }}
@@ -456,7 +441,6 @@ const Edit = () => {
                     setIsQtitleActive(true);
                     setActiveWrap("question");
                   }}
-                  /* style 객체로 글자 굵기/밑줄 적용 */
                   inputProps={{ style: questionTextStyle }}
                   sx={{
                     width: "100%",
@@ -465,7 +449,6 @@ const Edit = () => {
                     },
                   }}
                 />
-                {/* 토글 버튼 (질문 제목 전용) */}
                 {isQtitleActive && (
                   <ToggleButtonGroup
                     value={qtitleFormats}
@@ -485,13 +468,11 @@ const Edit = () => {
                   </ToggleButtonGroup>
                 )}
               </div>
-
-              {/* (2) 드롭다운 (Select) - 질문 유형 선택 */}
               <Select
                 value={questionType}
                 onChange={handleTypeChange}
                 variant="standard"
-                sx={{ width: 120 }}
+                sx={{ width: 120, alignSelf: "flex-start" }}
               >
                 <MenuItem value="radio">객관식</MenuItem>
                 <MenuItem value="checkbox">체크박스</MenuItem>
@@ -500,8 +481,43 @@ const Edit = () => {
               </Select>
             </div>
 
-            {/* (3) 질문 유형별 옵션/입력 영역 */}
+            {/* 질문 옵션 영역 */}
             {renderQuestionOptions()}
+
+            {/* 하단 컨트롤 패널 */}
+            <QuestionControlPanel>
+              {(questionType === "radio" || questionType === "checkbox") && (
+                <Button onClick={handleAddOption} variant="text">
+                  옵션 추가
+                </Button>
+              )}
+              <Tooltip title="복사하기" arrow>
+                <IconButton
+                  onClick={handleCopyQuestion}
+                  aria-label="copy question"
+                >
+                  <ContentCopyIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="삭제하기" arrow>
+                <IconButton
+                  onClick={handleDeleteQuestion}
+                  aria-label="delete question"
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Tooltip>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isRequired}
+                    onChange={() => setIsRequired(!isRequired)}
+                    color="primary"
+                  />
+                }
+                label="필수"
+              />
+            </QuestionControlPanel>
           </Question>
         </QuestionWrap>
       </Wrap>
