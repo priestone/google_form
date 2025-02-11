@@ -121,19 +121,29 @@ const RemoteControl = styled.div<{ top: number }>`
 
 const Edit = () => {
   // 1) 활성화 영역 상태
+  // 활성화 영역: "title" 혹은 "question" 또는 null
   const [activeWrap, setActiveWrap] = React.useState<
     "title" | "question" | null
   >(null);
+
+  // 다수의 질문을 관리할 경우 활성 질문의 인덱스 상태
+  const [activeQuestionIndex, setActiveQuestionIndex] = React.useState<
+    number | null
+  >(null);
+
+  // 질문 컴포넌트들에 대한 ref 배열 (여러 질문을 관리할 때)
+  const questionRefs = React.useRef<(HTMLDivElement | null)[]>([]);
+
+  // remote control의 top 위치 계산:
+  // - activeWrap이 "title"이거나 기본(default)일 경우 0,
+  // - activeWrap이 "question"이면 활성 질문의 offsetTop 값을 사용
   const remoteTop = React.useMemo(() => {
-    switch (activeWrap) {
-      case "title":
-        return 0;
-      case "question":
-        return 200;
-      default:
-        return 0;
+    if (activeWrap === "question" && activeQuestionIndex !== null) {
+      const activeElem = questionRefs.current[activeQuestionIndex];
+      return activeElem ? activeElem.offsetTop : 0;
     }
-  }, [activeWrap]);
+    return 0;
+  }, [activeWrap, activeQuestionIndex]);
 
   // 2) 질문 유형 및 옵션 관리
   const [questionType, setQuestionType] = React.useState("radio");
@@ -413,8 +423,14 @@ const Edit = () => {
 
         {/* (B) QUESTION WRAP */}
         <QuestionWrap
-          onClick={() => setActiveWrap("question")}
+          onClick={() => {
+            setActiveWrap("question");
+            setActiveQuestionIndex(0);
+          }}
           isActive={activeWrap === "question"}
+          ref={(el) => {
+            questionRefs.current[0] = el;
+          }}
         >
           <Question>
             {/* 질문 제목 및 드롭다운: flex 컨테이너에 alignItems를 flex-start로 지정 */}
